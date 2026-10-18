@@ -22,8 +22,13 @@ ICONOS = {"papel_carton": "📦", "plastico": "🧴", "vidrio": "🍾"}
 
 @st.fragment(run_every=3)
 def panel():
-    r = (supabase.table("detecciones").select("*")
-         .eq("origen", "basurero").order("hora", desc=True).limit(500).execute())
+    try:
+        r = (supabase.table("detecciones").select("*")
+             .eq("origen", "basurero").order("hora", desc=True).limit(500).execute())
+    except Exception as e:
+        st.error(f"Error de Supabase: {e}")
+        return
+
     df = pd.DataFrame(r.data)
 
     if df.empty:
