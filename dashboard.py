@@ -16,8 +16,11 @@ def secreto(nombre):
 
 supabase = create_client(secreto("SUPABASE_URL"), secreto("SUPABASE_KEY"))
 
-NOMBRES = {"papel_carton": "Papel / cartón", "plastico": "Plástico", "vidrio": "Vidrio"}
-ICONOS = {"papel_carton": "📦", "plastico": "🧴", "vidrio": "🍾"}
+NOMBRES = {"papel_carton": "Papel / cartón", "botella": "Botella"}
+ICONOS = {"papel_carton": "📦", "botella": "🍾"}
+
+# Registros antiguos que se guardaron como plástico o vidrio cuentan como botella
+UNIFICAR = {"plastico": "botella", "vidrio": "botella"}
 
 
 @st.fragment(run_every=3)
@@ -35,6 +38,7 @@ def panel():
         st.info("Aún no se ha introducido ningún residuo al basurero.")
         return
 
+    df["clase"] = df["clase"].replace(UNIFICAR)
     df["hora"] = pd.to_datetime(df["hora"], utc=True).dt.tz_convert("America/Bogota")
     ultimo = df.iloc[0]
     clase = ultimo["clase"]
@@ -44,16 +48,15 @@ def panel():
     st.caption(f"Confianza {ultimo['confianza']:.0%} · {ultimo['hora']:%d/%m/%Y %H:%M:%S}")
 
     conteo = df["clase"].value_counts()
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3 = st.columns(3)
     c1.metric("Total introducidos", len(df))
     c2.metric("📦 Papel / cartón", int(conteo.get("papel_carton", 0)))
-    c3.metric("🧴 Plástico", int(conteo.get("plastico", 0)))
-    c4.metric("🍾 Vidrio", int(conteo.get("vidrio", 0)))
+    c3.metric("🍾 Botellas", int(conteo.get("botella", 0)))
 
     izq, der = st.columns(2)
     with izq:
         st.subheader("Residuos por material")
-        st.bar_chart(conteo)
+        st.bar_chart(conteo.rename(index=lambda c: NOMBRES.get(c, c)))
     with der:
         st.subheader("Residuos por hora")
         st.line_chart(df.set_index("hora").resample("h").size())
